@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+  <title>jQuery Testing</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <style>
+    #googlemaps { 
+      height: 100%; 
+      width: 100%; 
+      position:absolute; 
+      top: 0; 
+      left: 0; 
+      z-index: 0; /* Set z-index to 0 as it will be on a layer below the contact form */
+    }
+
+    #locationForm { 
+      position: relative; 
+      z-index: 1; /* The z-index should be higher than Google Maps */
+      width: 300px;
+      height: 250px;
+      margin: 0 auto;
+      opacity: 1; /* Set the opacity for a slightly transparent Google Form */ 
+      background-color: lightgrey;
+      border: 1px solid black;
+      text-align: center;
+      font-family: "Helvetica", "Arial", sans-serif;
+    }
+
+    #resultsDisplay {
+      position: relative;
+      border: 1px solid black;
+      width: 250px;
+      height: 100px;
+      margin: 20px auto;
+      background-color: black;
+      color: white;
+    }
+  </style>
+</head>  
+<body>
+  <div id="googlemaps"></div>
+  <div id="locationForm">
+    <h1>Get Weather</h1>
+    <input type="text" placeholder="00000" id="location">
+    <input type="button" value="Temp" onclick="loadDoc(parseWeather)">
+    <div id="resultsDisplay">
+      <p>Location: </p>
+      <h1></h1>
+    </div>
+  </div>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAF4N4hpSyMDFGIkASLWYK84GZhpZG-k7A&callback=initMap"
+  type="text/javascript">
+    //AIzaSyAF4N4hpSyMDFGIkASLWYK84GZhpZG-k7A
+  </script>
+  <script>
+    var position = [39.740002, -104.991997];
+
+    function loadDoc(cFunction) {
+      var location = $("#location").val();
+      var url = "https://query.yahooapis.com/v1/public/yql?q=select * from weather.forecast where woeid in (select woeid from geo.places(1) where text='" + location + "')&format=json&callback=callbackFunction";
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          cFunction(this);  
+
+        }  
+      };  
+      xhttp.open("GET",url, true);  
+      xhttp.send();
+    }
+    
+    function parseWeather(xhttp) {
+      var data = JSON.parse(xhttp.responseText.substring(21,xhttp.responseText.length-2));
+      var temp = data.query.results.channel.item.condition.temp;
+      var city = data.query.results.channel.location.city;
+      var state = data.query.results.channel.location.region;
+      position = [data.query.results.channel.item.lat, data.query.results.channel.item.long];
+      showGoogleMaps();
+      $("#resultsDisplay p").text("Location: " + city + ", " + state);
+      $("#resultsDisplay h1").text(temp + "F");
+      //alert(city + ", " + state + "\nTemp: " + temp);
+    }
+
+    function showGoogleMaps() {
+
+      var latLng = new google.maps.LatLng(position[0], position[1]);
+
+      var mapOptions = {
+        zoom: 11, // initialize zoom level - the max value is 21
+        streetViewControl: false, // hide the yellow Street View pegman
+        scaleControl: true, // allow users to zoom the Google Map
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        center: latLng
+      };
+
+      map = new google.maps.Map(document.getElementById('googlemaps'),
+        mapOptions);
+
+      // Show the default red marker at the location
+      marker = new google.maps.Marker({
+        position: latLng,
+        map: map,
+        draggable: false,
+        animation: google.maps.Animation.DROP
+      });
+    }
+
+    google.maps.event.addDomListener(window, 'load', showGoogleMaps);
+  </script>  
+</body>
+</html>
